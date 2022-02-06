@@ -42,28 +42,28 @@ class PDDL_Parser:
     def scan_tokens(self, filename):
         with open(filename) as f:
             # Remove single line comments
-            str = re.sub(r';.*$', '', f.read(), flags=re.MULTILINE).lower()
+            subst = re.sub(r';.*$', '', f.read(), flags=re.MULTILINE).lower()
         # Tokenize
         stack = []
-        list = []
-        for t in re.findall(r'[()]|[^\s()]+', str):
+        expr = []
+        for t in re.findall(r'[()]|[^\s()]+', subst):
             if t == '(':
-                stack.append(list)
-                list = []
+                stack.append(expr)
+                expr = []
             elif t == ')':
                 if stack:
-                    l = list
-                    list = stack.pop()
-                    list.append(l)
+                    tmp = expr
+                    expr = stack.pop()
+                    expr.append(tmp)
                 else:
                     raise Exception('Missing open parentheses')
             else:
-                list.append(t)
+                expr.append(t)
         if stack:
             raise Exception('Missing close parentheses')
-        if len(list) != 1:
+        if len(expr) != 1:
             raise Exception('Malformed expression')
-        return list[0]
+        return expr[0]
 
     # -----------------------------------------------
     # Parse domain
@@ -101,7 +101,7 @@ class PDDL_Parser:
         else:
             raise Exception('File ' + domain_filename + ' does not match domain pattern')
 
-    def parse_domain_extended(self, t, group):
+    def parse_domain_extended(self, t, _group):
         print(str(t) + ' is not recognized in domain')
 
     # -----------------------------------------------
@@ -109,25 +109,25 @@ class PDDL_Parser:
     # -----------------------------------------------
 
     def parse_hierarchy(self, group, structure, name, redefine):
-        list = []
+        lst = []
         while group:
             if redefine and group[0] in structure:
                 raise Exception('Redefined supertype of ' + group[0])
             elif group[0] == '-':
-                if not list:
+                if not lst:
                     raise Exception('Unexpected hyphen in ' + name)
                 group.pop(0)
-                type = group.pop(0)
-                if type not in structure:
-                    structure[type] = []
-                structure[type] += list
-                list = []
+                typ = group.pop(0)
+                if typ not in structure:
+                    structure[typ] = []
+                structure[typ] += lst
+                lst = []
             else:
-                list.append(group.pop(0))
-        if list:
+                lst.append(group.pop(0))
+        if lst:
             if 'object' not in structure:
                 structure['object'] = []
-            structure['object'] += list
+            structure['object'] += lst
 
     # -----------------------------------------------
     # Parse objects
@@ -159,9 +159,9 @@ class PDDL_Parser:
                 if t == '-':
                     if not untyped_variables:
                         raise Exception('Unexpected hyphen in predicates')
-                    type = pred.pop(0)
+                    typ = pred.pop(0)
                     while untyped_variables:
-                        arguments[untyped_variables.pop(0)] = type
+                        arguments[untyped_variables.pop(0)] = typ
                 else:
                     untyped_variables.append(t)
             while untyped_variables:
@@ -216,8 +216,9 @@ class PDDL_Parser:
             Action(name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects,
                    extensions))
 
-    def parse_action_extended(self, t, group):
+    def parse_action_extended(self, t, _group):
         print(str(t) + ' is not recognized in action')
+        return []
 
     # -----------------------------------------------
     # Parse problem
@@ -225,7 +226,7 @@ class PDDL_Parser:
 
     def parse_problem(self, problem_filename):
         def frozenset_of_tuples(data):
-            return frozenset([tuple(t) for t in data])
+            return frozenset([tuple(item) for item in data])
 
         tokens = self.scan_tokens(problem_filename)
         if type(tokens) is list and tokens.pop(0) == 'define':
@@ -258,7 +259,7 @@ class PDDL_Parser:
         else:
             raise Exception('File ' + problem_filename + ' does not match problem pattern')
 
-    def parse_problem_extended(self, t, group):
+    def parse_problem_extended(self, t, _group):
         print(str(t) + ' is not recognized in problem')
 
     # -----------------------------------------------
@@ -281,10 +282,7 @@ class PDDL_Parser:
                 positive.append(predicate)
 
 
-# -----------------------------------------------
-# Main
-# -----------------------------------------------
-if __name__ == '__main__':
+def test_parser():
     import sys
     import pprint
 
@@ -307,3 +305,10 @@ if __name__ == '__main__':
     print('State: ' + str([list(i) for i in parser.state]))
     print('Positive goals: ' + str([list(i) for i in parser.positive_goals]))
     print('Negative goals: ' + str([list(i) for i in parser.negative_goals]))
+
+
+# -----------------------------------------------
+# Main
+# -----------------------------------------------
+if __name__ == '__main__':
+    test_parser()

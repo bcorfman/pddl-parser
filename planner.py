@@ -15,7 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
-
+import sys
+import time
 from PDDL import PDDL_Parser
 
 
@@ -43,7 +44,7 @@ class Planner:
             for act in action.groundify(parser.objects, parser.types):
                 ground_actions.append(act)
         # Search
-        visited = set([state])
+        visited = {state}
         fringe = [state, None]
         while fringe:
             state = fringe.pop(0)
@@ -78,13 +79,7 @@ class Planner:
         return state.difference(negative).union(positive)
 
 
-# -----------------------------------------------
-# Main
-# -----------------------------------------------
-if __name__ == '__main__':
-    import sys
-    import time
-
+def run_planner():
     start_time = time.time()
     domain = sys.argv[1]
     problem = sys.argv[2]
@@ -99,3 +94,10 @@ if __name__ == '__main__':
     else:
         print('No plan was found')
         exit(1)
+
+
+# -----------------------------------------------
+# Main
+# -----------------------------------------------
+if __name__ == '__main__':
+    run_planner()

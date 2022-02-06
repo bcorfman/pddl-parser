@@ -26,7 +26,7 @@ class Action:
     # -----------------------------------------------
 
     def __init__(self, name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects,
-                 extensions=None):
+                 _extensions=None):
         def frozenset_of_tuples(data):
             return frozenset([tuple(t) for t in data])
 
@@ -66,8 +66,8 @@ class Action:
             return
         type_map = []
         variables = []
-        for var, type in self.parameters:
-            type_stack = [type]
+        for var, typ in self.parameters:
+            type_stack = [typ]
             items = []
             while type_stack:
                 t = type_stack.pop()
@@ -102,10 +102,7 @@ class Action:
         return new_group
 
 
-# -----------------------------------------------
-# Main
-# -----------------------------------------------
-if __name__ == '__main__':
+def test_action():
     a = Action('move', [['?ag', 'agent'], ['?from', 'pos'], ['?to', 'pos']],
                [['at', '?ag', '?from'], ['adjacent', '?from', '?to']],
                [['at', '?ag', '?to']],
@@ -121,3 +118,10 @@ if __name__ == '__main__':
     types = {'object': ['agent', 'pos']}
     for act in a.groundify(objects, types):
         print(act)
+
+
+# -----------------------------------------------
+# Main
+# -----------------------------------------------
+if __name__ == '__main__':
+    test_action()
