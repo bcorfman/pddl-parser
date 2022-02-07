@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
+import argparse
 import sys
 import time
 from PDDL import PDDL_Parser
@@ -81,16 +82,23 @@ class Planner:
 
 def run_planner():
     start_time = time.time()
-    domain = sys.argv[1]
-    problem = sys.argv[2]
-    verbose = len(sys.argv) > 3 and sys.argv[3] == '-v'
+    parser = argparse.ArgumentParser(description='Planning is discovering a sequence of actions that will achieve a ' +
+                                                 'goal. This is a compact and readable classical planner ' +
+                                                 'designed for educational purposes.')
+    parser.add_argument('domain_file', help='defines a problem domain via requirements, predicates, constants and '
+                                            'actions using Planning Domain Definition Language (PDDL)')
+    parser.add_argument('problem_file', help='defines problem by describing its domain, objects, initial state and '
+                                             'goal state using Planning Domain Definition Language (PDDL)')
+    parser.add_argument('-v', '--verbose', help='gives verbose output for debugging purposes', action='store_true',
+                        default=False)
+    args = parser.parse_args()
     planner = Planner()
-    plan = planner.solve(domain, problem)
+    plan = planner.solve(args.domain_file, args.problem_file)
     print('Time: ' + str(time.time() - start_time) + 's')
     if type(plan) is list:
         print('plan:')
         for act in plan:
-            print(act if verbose else act.name + ' ' + ' '.join(act.parameters))
+            print(act if args.verbose else act.name + ' ' + ' '.join(act.parameters))
     else:
         print('No plan was found')
         exit(1)
