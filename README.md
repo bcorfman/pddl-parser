@@ -3,6 +3,8 @@
 
 PDDL Parser is a simple parser for PDDL described in Python. It supports :strips, :negative-preconditions and :typing requirements. It contains a compact and readable planner with a few different search algorithms, both for comparison and educational purposes.
 
+PDDL Parser was originally designed and developed by [Mau Magnaguagno](https://github.com/Maumagnaguagno) in 2015 to be used in the classroom, following [HyperTensioN](https://github.com/Maumagnaguagno/HyperTensioN)'s parsing style.
+
 ## Source
 - [action.py](action.py) with an Action class
 - [PDDL.py](PDDL.py) with a PDDL parser
