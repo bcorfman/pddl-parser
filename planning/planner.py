@@ -30,15 +30,13 @@ class Planner:
     # Solve
     # -----------------------------------------------
 
-    def solve(self, domain_file, problem_file, domain_class, problem_class, search_algo):
+    def solve(self, domain_file, problem_file, problem_class, search_algo):
         # Parser
         parser = PDDL_Parser()
         parser.parse_domain(domain_file)
         parser.parse_problem(problem_file)
-        domain = domain_class(parser)
         problem = problem_class(parser)
-
-        return search_algo(domain, problem)
+        return search_algo(problem)
 
 
 def parse_args(args):
@@ -52,7 +50,6 @@ def parse_args(args):
                                              'goal state using Planning Domain Definition Language (PDDL)')
     parser.add_argument('-a', help='search algorithm used in the planner', dest='search_algo',
                         default=search.breadth_first_search)
-    parser.add_argument('-d', help="domain class used in the search", dest='domain_class', default=search.Domain)
     parser.add_argument('-p', help="problem class used in the search", dest='problem_class', default=search.Problem)
     parser.add_argument('-v', '--verbose', help='gives verbose output for debugging purposes', action='store_true',
                         default=False)
@@ -63,7 +60,7 @@ def run_planner():
     start_time = time.time()
     args = parse_args(sys.argv[1:])
     planner = Planner()
-    plan = planner.solve(args.domain_file, args.problem_file, args.domain_class, args.problem_class, args.search_algo)
+    plan = planner.solve(args.domain_file, args.problem_file, args.problem_class, args.search_algo)
     print('Time: ' + str(time.time() - start_time) + 's')
     if type(plan) is list:
         print('plan:')

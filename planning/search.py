@@ -11,14 +11,18 @@ class Node:
         return Node(other.state, other.cost, other.actions)
 
 
-class Domain:
+class Problem:
     def __init__(self, parser):
-        self.name = parser.domain_name
-        self.requirements = parser.requirements
-        self.types = parser.types
-        self.objects = parser.objects
-        self.actions = parser.actions
-        self.predicates = parser.predicates
+        self.name = parser.problem_name
+        self.state = parser.state.copy()
+        self.positive_goals = parser.positive_goals.copy()
+        self.negative_goals = parser.negative_goals.copy()
+        self.cost = self.heuristic(self.state)
+        self.requirements = parser.requirements.copy()
+        self.types = parser.types.copy()
+        self.objects = parser.objects.copy()
+        self.actions = parser.actions.copy()
+        self.predicates = parser.predicates.copy()
         self.ground_actions = self._groundify_actions()
 
     def _groundify_actions(self):
@@ -28,15 +32,6 @@ class Domain:
             for act in action.groundify(self.objects, self.types):
                 ground_actions.append(act)
         return ground_actions
-
-
-class Problem:
-    def __init__(self, parser):
-        self.name = parser.problem_name
-        self.state = parser.state.copy()
-        self.positive_goals = parser.positive_goals.copy()
-        self.negative_goals = parser.negative_goals.copy()
-        self.cost = self.heuristic(self.state)
 
     def applicable(self, node, positive, negative):
         return positive.issubset(node.state) and negative.isdisjoint(node.state)
@@ -48,6 +43,27 @@ class Problem:
     def at_goal(self, node):
         return self.positive_goals.issubset(node.state) and self.negative_goals.isdisjoint(node.state)
 
+    def relax_preconditions(self):
+        for action in self.ground_actions:
+            for preconds in permutations(action.positive_preconditions):
+                problem = self.copy()
+                problem.action.positive_preconditions = preconds
+                yield problem
+
+    def relax_delete_effects(self):
+        for _ in self.ground_actions:
+            problem = self.copy()
+            problem.action.del_effects = []
+            yield problem
+
+    def generate_successors(self, node):
+        new_nodes = []
+        for action in self.ground_actions:
+            if self.applicable(node, action.positive_preconditions, action.negative_preconditions):
+                new_node = self.apply(node, action)
+                new_nodes.append(new_node)
+        return new_nodes
+
     def heuristic(self, _state):
         """
         A heuristic function estimates the cost from the current state to the nearest
@@ -56,16 +72,7 @@ class Problem:
         return 0  # null heuristic by default
 
 
-def successors(node, domain, problem):
-    new_nodes = []
-    for action in domain.ground_actions:
-        if problem.applicable(node, action.positive_preconditions, action.negative_preconditions):
-            new_node = problem.apply(node, action)
-            new_nodes.append(new_node)
-    return new_nodes
-
-
-def graph_search(frontier, domain, problem):
+def graph_search(frontier, problem):
     visited = set()
     initial_state = problem.state
     initial_cost = problem.heuristic(initial_state)
@@ -77,20 +84,18 @@ def graph_search(frontier, domain, problem):
             return list(node.actions)
         if node.state not in visited:
             visited.add(node.state)
-            for new_node in successors(node, domain, problem):
+            for new_node in problem.generate_successors(node):
                 if new_node.state not in visited:
                     frontier.push(new_node)
 
 
-def breadth_first_search(domain, problem):
+def breadth_first_search(problem):
     """Search the shallowest nodes in the search tree first."""
     frontier = Queue()
-    return graph_search(frontier, domain, problem)
+    return graph_search(frontier, problem)
 
 
-def astar_search(domain, problem):
+def astar_search(problem):
     """Search the node that has the lowest combined cost and heuristic first."""
     frontier = PriorityQueue()
-    return graph_search(frontier, domain, problem)
-
-
+    return graph_search(frontier, problem)
