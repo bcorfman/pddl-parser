@@ -33,7 +33,7 @@ class Test_Planner(unittest.TestCase):
         planner = Planner()
         self.assertEqual(planner.solve(os.path.join('examples', 'dinner', 'dinner.pddl'),
                                        os.path.join('examples', 'dinner', 'pb1.pddl'),
-                                       search.Domain, search.Problem, search.breadth_first_search),
+                                       search.Problem, search.breadth_first_search),
                          [
                              Action('cook', [], [['clean']], [], [['dinner']], []),
                              Action('wrap', [], [['quiet']], [], [['present']], []),
@@ -46,9 +46,8 @@ class Test_Planner(unittest.TestCase):
                              os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl')])
         self.assertEqual(parser.domain_file, os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl'))
         self.assertEqual(parser.problem_file, os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl'))
-        self.assertEqual(parser.search_algo, 'search.bfs')
-        self.assertEqual(parser.domain_class, 'search.Domain')
-        self.assertEqual(parser.problem_class, 'search.Problem')
+        self.assertEqual(parser.search_algo, search.breadth_first_search)
+        self.assertEqual(parser.problem_class, search.Problem)
 
 
 # -----------------------------------------------
