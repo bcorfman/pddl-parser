@@ -16,9 +16,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
+import os
 import unittest
-from action import Action
-from planner import Planner
+from planning.action import Action
+from planning.planner import Planner, parse_args
+from planning import search
 
 
 class Test_Planner(unittest.TestCase):
@@ -29,13 +31,24 @@ class Test_Planner(unittest.TestCase):
 
     def test_solve_dinner(self):
         planner = Planner()
-        self.assertEqual(planner.solve('examples/dinner/dinner.pddl', 'examples/dinner/pb1.pddl'),
+        self.assertEqual(planner.solve(os.path.join('examples', 'dinner', 'dinner.pddl'),
+                                       os.path.join('examples', 'dinner', 'pb1.pddl'),
+                                       search.Domain, search.Problem, search.breadth_first_search),
                          [
                              Action('cook', [], [['clean']], [], [['dinner']], []),
                              Action('wrap', [], [['quiet']], [], [['present']], []),
                              Action('carry', [], [['garbage']], [], [], [['garbage'], ['clean']])
                          ]
                          )
+
+    def test_parser_default_args(self):
+        parser = parse_args([os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl'),
+                             os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl')])
+        self.assertEqual(parser.domain_file, os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl'))
+        self.assertEqual(parser.problem_file, os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl'))
+        self.assertEqual(parser.search_algo, 'search.bfs')
+        self.assertEqual(parser.domain_class, 'search.Domain')
+        self.assertEqual(parser.problem_class, 'search.Problem')
 
 
 # -----------------------------------------------

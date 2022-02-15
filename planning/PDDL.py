@@ -17,7 +17,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 import re
-from action import Action
+from planning.action import Action
+from planning.util import frozenset_of_tuples
 
 
 class PDDL_Parser:
@@ -225,9 +226,6 @@ class PDDL_Parser:
     # -----------------------------------------------
 
     def parse_problem(self, problem_filename):
-        def frozenset_of_tuples(data):
-            return frozenset([tuple(item) for item in data])
-
         tokens = self.scan_tokens(problem_filename)
         if type(tokens) is list and tokens.pop(0) == 'define':
             self.problem_name = 'unknown'
@@ -286,25 +284,25 @@ def test_parser():
     import sys
     import pprint
 
-    domain = sys.argv[1]
-    problem = sys.argv[2]
+    domain_file = sys.argv[1]
+    problem_file = sys.argv[2]
     parser = PDDL_Parser()
     print('----------------------------')
-    pprint.pprint(parser.scan_tokens(domain))
+    pprint.pprint(parser.scan_tokens(domain_file))
     print('----------------------------')
-    pprint.pprint(parser.scan_tokens(problem))
+    pprint.pprint(parser.scan_tokens(problem_file))
     print('----------------------------')
-    parser.parse_domain(domain)
-    parser.parse_problem(problem)
-    print('Domain name: ' + parser.domain_name)
+    domain = parser.parse_domain(domain_file)
+    problem = parser.parse_problem(problem_file)
+    print('Domain name: ' + domain.name)
     for act in parser.actions:
         print(act)
     print('----------------------------')
-    print('Problem name: ' + parser.problem_name)
-    print('Objects: ' + str(parser.objects))
-    print('State: ' + str([list(i) for i in parser.state]))
-    print('Positive goals: ' + str([list(i) for i in parser.positive_goals]))
-    print('Negative goals: ' + str([list(i) for i in parser.negative_goals]))
+    print('Problem name: ' + problem.name)
+    print('Objects: ' + str(problem.objects))
+    print('State: ' + str([list(i) for i in problem.state]))
+    print('Positive goals: ' + str([list(i) for i in problem.positive_goals]))
+    print('Negative goals: ' + str([list(i) for i in problem.negative_goals]))
 
 
 # -----------------------------------------------
