@@ -26,7 +26,7 @@ class Action:
     # -----------------------------------------------
 
     def __init__(self, name, parameters, positive_preconditions, negative_preconditions, add_effects, del_effects,
-                 _extensions=None):
+                 _cost=None, _extensions=None):
         def frozenset_of_tuples(data):
             return frozenset([tuple(t) for t in data])
 
@@ -36,6 +36,7 @@ class Action:
         self.negative_preconditions = frozenset_of_tuples(negative_preconditions)
         self.add_effects = frozenset_of_tuples(add_effects)
         self.del_effects = frozenset_of_tuples(del_effects)
+        self.cost = _cost or 1
 
     # -----------------------------------------------
     # to String

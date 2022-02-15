@@ -17,8 +17,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 import unittest
-from action import Action
-from PDDL import PDDL_Parser
+from planning.action import Action
+from planning.PDDL import PDDL_Parser
 
 
 class Test_PDDL(unittest.TestCase):
