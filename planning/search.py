@@ -1,4 +1,7 @@
-from planning.util import Queue, PriorityQueue, frozenset_of_tuples
+
+import copy
+from itertools import product
+from planning.util import Queue, PriorityQueue, frozenset_of_tuples, smaller_subslices
 
 
 class Node:
@@ -21,14 +24,13 @@ class Problem:
         self.requirements = parser.requirements.copy()
         self.types = parser.types.copy()
         self.objects = parser.objects.copy()
-        self.actions = parser.actions.copy()
         self.predicates = parser.predicates.copy()
-        self.ground_actions = self._groundify_actions()
+        self.ground_actions = self._groundify_actions(parser.actions)
 
-    def _groundify_actions(self):
+    def _groundify_actions(self, actions):
         # Grounding process
         ground_actions = []
-        for action in self.actions:
+        for action in actions:
             for act in action.groundify(self.objects, self.types):
                 ground_actions.append(act)
         return ground_actions
@@ -43,18 +45,18 @@ class Problem:
     def at_goal(self, node):
         return self.positive_goals.issubset(node.state) and self.negative_goals.isdisjoint(node.state)
 
-    def relax_preconditions(self):
-        for action in self.ground_actions:
-            for preconds in permutations(action.positive_preconditions):
-                problem = self.copy()
-                problem.action.positive_preconditions = preconds
-                yield problem
+    def generate_relaxed_actions_with_fewer_preconditions(self, act):
+        for pos, neg in product(smaller_subslices(act.positive_preconditions),
+                                smaller_subslices(act.negative_preconditions)):
+            action = copy.copy(act)
+            action.positive_preconditions = pos
+            action.negative_preconditions = neg
+            yield action
 
-    def relax_delete_effects(self):
-        for _ in self.ground_actions:
-            problem = self.copy()
-            problem.action.del_effects = []
-            yield problem
+    def generate_relaxed_action_without_delete_effects(self, act):
+        action = copy.copy(act)
+        action.del_effects = []
+        return action
 
     def generate_successors(self, node):
         new_nodes = []

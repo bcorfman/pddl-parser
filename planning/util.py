@@ -1,4 +1,6 @@
 from collections import deque
+from itertools import combinations, repeat, starmap
+import operator
 
 
 class Stack:
@@ -61,3 +63,13 @@ class PriorityQueue:
 
 def frozenset_of_tuples(data):
     return frozenset([tuple(item) for item in data])
+
+
+def smaller_subslices(seq):
+    """ Return all contiguous non-empty subslices of a sequence, except the longest.
+    Used for generating sequences of relaxed preconditions."""
+    # smaller_subslices('ABCD') --> A AB ABC B BC BCD C CD D
+    items = list(seq)
+    length = len(seq)
+    slices = starmap(slice, ((x, y) for x, y in combinations(range(length + 1), 2) if y - x < length))
+    return map(operator.getitem, repeat(items), slices)

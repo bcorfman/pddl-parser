@@ -19,6 +19,7 @@
 import os
 import unittest
 from planning.action import Action
+from planning.PDDL import PDDL_Parser
 from planning.planner import Planner, parse_args
 from planning import search
 
