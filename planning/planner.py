@@ -31,7 +31,6 @@ class Planner:
     # -----------------------------------------------
 
     def solve(self, domain_file, problem_file, problem_class, search_algo):
-        # Parser
         parser = PDDL_Parser()
         parser.parse_domain(domain_file)
         parser.parse_problem(problem_file)
