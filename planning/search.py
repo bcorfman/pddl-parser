@@ -1,4 +1,3 @@
-
 import copy
 from itertools import product
 from planning.util import Queue, PriorityQueue, frozenset_of_tuples, smaller_subslices
@@ -21,7 +20,7 @@ class Problem:
         self.positive_goals = parser.positive_goals.copy()
         self.negative_goals = parser.negative_goals.copy()
         self.cost = self.heuristic(self.state)
-        self.requirements = parser.requirements.copy()
+        self.requirements = parser.requirements[:]
         self.types = parser.types.copy()
         self.objects = parser.objects.copy()
         self.predicates = parser.predicates.copy()
@@ -72,6 +71,26 @@ class Problem:
         goal in the provided search problem.  This heuristic is trivial.
         """
         return 0  # null heuristic by default
+
+
+def generate_problems_with_relaxed_preconditions():
+    for action in self.ground_actions:
+        new_actions = []
+        for act in self.generate_relaxed_actions_with_fewer_preconditions(action):
+            new_actions.append(act)
+
+    class RelaxedProblem(Problem):
+        def __init__(self, parser):
+            super(RelaxedProblem).__init__(parser)
+            self.ground_actions = new_actions
+
+        def heuristic(self, state):
+            self.ground_
+
+
+class RelaxedPreconditionsProblem(Problem):
+    def __init__(self, parser):
+        super(Problem).__init__(parser)
 
 
 def graph_search(frontier, problem):
