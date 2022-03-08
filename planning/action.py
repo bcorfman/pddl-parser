@@ -38,6 +38,11 @@ class Action:
         self.del_effects = frozenset_of_tuples(del_effects)
         self.cost = _cost or 1
 
+    def __copy__(self):
+        other = Action(self.name, self.parameters, self.positive_preconditions, self.negative_preconditions,
+                       self.add_effects, self.del_effects)
+        return other
+
     # -----------------------------------------------
     # to String
     # -----------------------------------------------
@@ -74,10 +79,8 @@ class Action:
                 t = type_stack.pop()
                 if t in objects:
                     items += objects[t]
-                elif t in types:
+                if t in types:
                     type_stack += types[t]
-                else:
-                    raise Exception('Unrecognized type ' + t)
             type_map.append(items)
             variables.append(var)
         for assignment in itertools.product(*type_map):

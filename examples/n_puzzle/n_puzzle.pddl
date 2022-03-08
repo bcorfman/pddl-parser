@@ -19,7 +19,7 @@
   ; moves a tile between two adjacent slots
   (:action move
     :parameters (?t - tile ?s1 ?s2 - slot)
-    :precondition (and (adjacent ?s1 ?s2) (at Blank ?s1) (at ?t ?s2) (not (equal ?s1 ?s2)))
+    :precondition (and (adjacent ?s1 ?s2) (at Blank ?s1) (at ?t ?s2))
     :effect (and (at Blank ?s2) (at ?t ?s1) (not (at Blank ?s1)) (not (at ?t ?s2)))
   )
 )

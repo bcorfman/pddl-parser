@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 import argparse
+import math
 import sys
 import time
 from planning.PDDL import PDDL_Parser
@@ -30,12 +31,40 @@ class Planner:
     # Solve
     # -----------------------------------------------
 
-    def solve(self, domain_file, problem_file, problem_class, search_algo):
+    def solve(self, domain_file, problem_file, heuristics, search_type):
+        search_algo = search.ALGORITHMS[search_type]
+        parser = self.parse(domain_file, problem_file)
+        cost_estimate = None
+        if search_algo != search.breadth_first_search:
+            cost_estimate, _ = self.solve_relaxed_problem(heuristics, parser)
+        return self.solve_informed_problem(cost_estimate, parser, search_algo)
+
+    def parse(self, domain_file, problem_file):
         parser = PDDL_Parser()
         parser.parse_domain(domain_file)
         parser.parse_problem(problem_file)
-        problem = problem_class(parser)
+        return parser
+
+    def solve_informed_problem(self, cost_estimate, parser, search_algo):
+        problem = search.Problem(parser)
+        # cost estimate for relaxed problem becomes guide for informed search
+        problem.cost_estimate = cost_estimate
         return search_algo(problem)
+
+    def solve_relaxed_problem(self, heuristics, parser):
+        cost_estimate = -1
+        problem = search.Problem(parser)
+        # relax the original problem by altering the actions so that it's easier to solve.
+        best_relaxed_problem = None
+        for name in heuristics:
+            heuristic_class = search.HEURISTIC_CLASS[name]
+            heuristic = heuristic_class()
+            for relaxed_problem in heuristic.configure(problem):
+                relaxed_plan = search.breadth_first_search(relaxed_problem)
+                if type(relaxed_plan) is list:
+                    cost_estimate = max(cost_estimate, len(relaxed_plan))
+                    best_relaxed_problem = relaxed_problem
+        return cost_estimate, best_relaxed_problem
 
 
 def parse_args(args):
@@ -47,9 +76,11 @@ def parse_args(args):
                                             'actions using Planning Domain Definition Language (PDDL)')
     parser.add_argument('problem_file', help='defines problem by describing its domain, objects, initial state and '
                                              'goal state using Planning Domain Definition Language (PDDL)')
-    parser.add_argument('-a', help='search algorithm used in the planner', dest='search_algo',
-                        default=search.breadth_first_search)
-    parser.add_argument('-p', help="problem class used in the search", dest='problem_class', default=search.Problem)
+    parser.add_argument('-s', help='search algorithm used in the planner', dest='search_type',
+                        choices=['bfs', 'astar'], default='bfs')
+    # change to heuristics i.e., more than one
+    parser.add_argument('-H', help="heuristics used in the search", dest='heuristics', action='append',
+                        choices=['no_delete_effects', 'relaxed_preconds'])
     parser.add_argument('-v', '--verbose', help='gives verbose output for debugging purposes', action='store_true',
                         default=False)
     return parser.parse_args(args)
@@ -59,7 +90,7 @@ def run_planner():
     start_time = time.time()
     args = parse_args(sys.argv[1:])
     planner = Planner()
-    plan = planner.solve(args.domain_file, args.problem_file, args.problem_class, args.search_algo)
+    plan = planner.solve(args.domain_file, args.problem_file, args.heuristics, args.search_type)
     print('Time: ' + str(time.time() - start_time) + 's')
     if type(plan) is list:
         print('plan:')

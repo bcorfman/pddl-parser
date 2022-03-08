@@ -47,8 +47,29 @@ class Test_Planner(unittest.TestCase):
                              os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl')])
         self.assertEqual(parser.domain_file, os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl'))
         self.assertEqual(parser.problem_file, os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl'))
-        self.assertEqual(parser.search_algo, search.breadth_first_search)
-        self.assertEqual(parser.problem_class, search.Problem)
+        self.assertEqual(search.ALGORITHMS[parser.search_type], search.breadth_first_search)
+
+    def test_parser_astar_args(self):
+        args = parse_args([os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl'),
+                           os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl'),
+                           '-H=no_delete_effects', '-s=astar'])
+        self.assertEqual(args.domain_file, os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl'))
+        self.assertEqual(args.problem_file, os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl'))
+        self.assertEqual(search.ALGORITHMS[args.search_type], search.astar_search)
+        self.assertEqual(search.HEURISTIC_CLASS[args.heuristics[0]], search.RelaxDeleteEffects)
+
+    def test_planner_setup_relaxed_problem(self):
+        domain_file = os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl')
+        problem_file = os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl')
+        planner = Planner()
+        parser = planner.parse(domain_file, problem_file)
+        heuristics = ['relaxed_preconds']
+        cost_estimate, best_relaxed_problem = planner.solve_relaxed_problem(heuristics, parser)
+        pos_preconds = best_relaxed_problem.ground_actions[0].positive_preconditions
+        neg_preconds = best_relaxed_problem.ground_actions[0].negative_preconditions
+        self.assertTrue(pos_preconds, {})
+        self.assertTrue(neg_preconds, {})
+        self.assertTrue(cost_estimate == 21)
 
 
 # -----------------------------------------------
