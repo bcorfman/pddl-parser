@@ -1,7 +1,6 @@
 import heapq
-import operator
 from collections import deque
-from itertools import combinations
+from itertools import chain, combinations, tee, filterfalse
 
 
 class Stack:
@@ -68,8 +67,8 @@ class PriorityQueue:
                 if p <= priority:
                     break
                 del self._data[index]
-                self.data.append((priority, c, item))
-                heapq.heapify(self.data)
+                self._data.append((priority, c, item))
+                heapq.heapify(self._data)
                 break
         else:
             self.push(item, priority)
@@ -79,8 +78,20 @@ def frozenset_of_tuples(data):
     return frozenset([tuple(item) for item in data])
 
 
-def subslices(seq):
-    """ Return all contiguous non-empty subslices of a sequence """
-    # subslices('ABCD') --> A AB ABC ABCD B BC BCD C CD D
-    slices = starmap(slice, combinations(range(len(seq) + 1), 2))
-    return map(operator.getitem, repeat(seq), slices)
+def powerset(iterable):
+    """ powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3) """
+    s = list(iterable)
+    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))
+
+
+def reduced_powerset(seq):
+    if type(seq) != set:
+        seq = frozenset(seq)
+    return frozenset_of_tuples((seq - frozenset(x) for x in powerset(seq) if 0 < len(x) < len(seq)))
+
+
+def partition(pred, iterable):
+    """Use a predicate to partition entries into false entries and true entries"""
+    # partition(is_odd, range(10)) --> 0 2 4 6 8   and  1 3 5 7 9
+    t1, t2 = tee(iterable)
+    return list(filterfalse(pred, t1)), list(filter(pred, t2))

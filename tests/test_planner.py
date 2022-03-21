@@ -19,9 +19,8 @@
 import os
 import unittest
 from planning.action import Action
-from planning.PDDL import PDDL_Parser
 from planning.planner import Planner, parse_args
-from planning import search
+from planning import heuristic, relax, search
 
 
 class Test_Planner(unittest.TestCase):
@@ -34,7 +33,7 @@ class Test_Planner(unittest.TestCase):
         planner = Planner()
         self.assertEqual(planner.solve(os.path.join('examples', 'dinner', 'dinner.pddl'),
                                        os.path.join('examples', 'dinner', 'pb1.pddl'),
-                                       search.Problem, search.breadth_first_search),
+                                       [], None, 'bfs', 60),
                          [
                              Action('cook', [], [['clean']], [], [['dinner']], []),
                              Action('wrap', [], [['quiet']], [], [['present']], []),
@@ -52,24 +51,22 @@ class Test_Planner(unittest.TestCase):
     def test_parser_astar_args(self):
         args = parse_args([os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl'),
                            os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl'),
-                           '-H=no_delete_effects', '-s=astar'])
+                           '-R=no_delete_effects', '-S=astar', '-H=max'])
         self.assertEqual(args.domain_file, os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl'))
         self.assertEqual(args.problem_file, os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl'))
         self.assertEqual(search.ALGORITHMS[args.search_type], search.astar_search)
-        self.assertEqual(search.HEURISTIC_CLASS[args.heuristics[0]], search.RelaxDeleteEffects)
+        self.assertEqual(search.HEURISTIC_CLASS[args.heuristic_type], heuristic.h_max)
+        self.assertEqual(search.RELAXING_TRANSFORMATIONS[args.transformations[0]], relax.RelaxDeleteEffects)
 
     def test_planner_setup_relaxed_problem(self):
-        domain_file = os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl')
-        problem_file = os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl')
+        args = parse_args([os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl'),
+                           os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl'),
+                           '-R=no_delete_effects', '-S=astar', '-H=max'])
         planner = Planner()
-        parser = planner.parse(domain_file, problem_file)
-        heuristics = ['relaxed_preconds']
-        cost_estimate, best_relaxed_problem = planner.solve_relaxed_problem(heuristics, parser)
-        pos_preconds = best_relaxed_problem.ground_actions[0].positive_preconditions
-        neg_preconds = best_relaxed_problem.ground_actions[0].negative_preconditions
-        self.assertTrue(pos_preconds, {})
-        self.assertTrue(neg_preconds, {})
-        self.assertTrue(cost_estimate == 21)
+        parser = planner.parse(args.domain_file, args.problem_file)
+        search_algo = search.ALGORITHMS[args.search_type]
+        cost_estimate, _ = planner.solve_relaxed_problem(parser, search_algo, args.transformations, args.heuristic_type)
+        self.assertEqual(cost_estimate, 21)
 
 
 # -----------------------------------------------

@@ -1,6 +1,8 @@
 import copy
-from itertools import product, chain, combinations
+import time
 from planning.util import Queue, PriorityQueue, frozenset_of_tuples
+from planning import relax
+from planning import heuristic
 
 
 class Node:
@@ -32,13 +34,13 @@ class Problem:
             self.groundify_actions()
         else:
             self.name = ""
-            self.state = {}
-            self.positive_goals = {}
-            self.negative_goals = {}
+            self.state = frozenset()
+            self.positive_goals = frozenset()
+            self.negative_goals = frozenset()
             self.requirements = []
-            self.types = {}
-            self.objects = {}
-            self.predicates = {}
+            self.types = frozenset()
+            self.objects = frozenset()
+            self.predicates = frozenset()
             self.actions = []
             self.ground_actions = []
 
@@ -61,8 +63,8 @@ class Problem:
         other.objects = self.objects.copy()
         other.predicates = self.predicates.copy()
         other.relaxed = copy.copy(self.relaxed) if self.relaxed is not self else self
-        other.actions = self.actions[:]
-        other.ground_actions = self.ground_actions[:]
+        other.actions = [copy.copy(act) for act in self.actions]
+        other.ground_actions = []
         other.cost_estimate = self.cost_estimate
         return other
 
@@ -84,22 +86,6 @@ class Problem:
     def at_goal(self, node):
         return self.positive_goals.issubset(node.state) and self.negative_goals.isdisjoint(node.state)
 
-    def actions_with_relaxed_preconditions(self, act):
-        pos_preconds = act.positive_preconditions
-        neg_preconds = act.negative_preconditions
-        new_actions = []
-        for pos, neg in product(subslices(pos_preconds), subslices(neg_preconds)):
-            new_action = copy.copy(act)
-            new_action.positive_preconditions = frozenset(pos)
-            new_action.negative_preconditions = frozenset(neg)
-            new_actions.append(new_action)
-        return new_actions
-
-    def action_without_delete_effects(self, act):
-        action = copy.copy(act)
-        action.del_effects = []
-        return action
-
     def generate_successors(self, node):
         new_nodes = []
         for action in self.ground_actions:
@@ -120,53 +106,14 @@ class Problem:
             return len(self.positive_goals.difference(state)) + len(self.negative_goals.intersection(state))
 
 
-class RelaxPreconditions:
-    def __init__(self):
-        pass
-
-    def configure(self, problem):
-        pos_set, neg_set = set(), set()
-        for act in problem.actions:
-            pos_set.add(act.positive_preconditions)
-            neg_set.add(act.negative_preconditions)
-
-        new_actions = []
-        for act in problem.actions:
-            new_action = problem.actions_with_relaxed_preconditions(act)
-            new_actions.append(new_action)
-        new_problem = copy.copy(problem)
-        new_problem.actions = new_actions
-        yield new_problem
-
-    def heuristic(self, _state):
-        return 0  # null heuristic for BFS
-
-
-class RelaxDeleteEffects:
-    def __init__(self):
-        pass
-
-    def configure(self, problem):
-        new_actions = []
-        for action in problem.actions:
-            relaxed_action = problem.action_without_delete_effects(action)
-            new_actions.append(relaxed_action)
-        new_problem = copy.copy(problem)
-        new_problem.actions = new_actions
-        yield new_problem
-
-    def heuristic(self, _state):
-        return 0  # null heuristic for BFS
-
-
-def graph_search(frontier, problem):
+def graph_search(frontier, problem, max_time):
     visited = set()
     initial_state = problem.state
     initial_cost = problem.relaxed.heuristic(initial_state)
     frontier.push(Node(initial_state, initial_cost))
     expanded = 0
-
-    while not frontier.is_empty():
+    start_time = time.time()
+    while not frontier.is_empty() and (time.time() - start_time) < max_time:
         node = frontier.pop()
         expanded += 1
         if problem.at_goal(node):
@@ -180,21 +127,23 @@ def graph_search(frontier, problem):
                     frontier.push(new_node)
 
 
-def breadth_first_search(problem):
+def breadth_first_search(problem, max_time):
     """Search the shallowest nodes in the search tree first."""
     frontier = Queue()
-    return graph_search(frontier, problem)
+    return graph_search(frontier, problem, max_time)
 
 
-def astar_search(problem):
+def astar_search(problem, max_time):
     """Search the node that has the lowest combined cost and heuristic first."""
     frontier = PriorityQueue()
-    return graph_search(frontier, problem)
+    return graph_search(frontier, problem, max_time)
 
 
 ALGORITHMS = {'bfs': breadth_first_search,
               'astar': astar_search}
 
-HEURISTIC_CLASS = {'null': None,
-                   'relaxed_preconds': RelaxPreconditions,
-                   'no_delete_effects': RelaxDeleteEffects}
+RELAXING_TRANSFORMATIONS = {'preconds': relax.RelaxPrecondition,
+                            'no_delete_effects': relax.RelaxDeleteEffects}
+
+HEURISTIC_CLASS = {'max': heuristic.h_max,
+                   'add': heuristic.h_add}

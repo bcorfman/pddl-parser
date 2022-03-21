@@ -26,5 +26,5 @@
   ; 3 4 5
   ; 6 7 8
 
-  (:goal (and (at Blank S1) (at T1 S2) (at T2 S3) (at T3 S4) (at T4 S5) (at T5 S6) (at T6 S7) (at T7 S8) (at T8 S9)))
+  (:goal (and (at T1 S2) (at T2 S3) (at T3 S4) (at T4 S5) (at T5 S6) (at T6 S7) (at T7 S8) (at T8 S9)))
 )

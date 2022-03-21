@@ -1,13 +1,11 @@
 [project]
-name = ""
+name = "pddl-parser"
 version = ""
-description = ""
+description = "Forked from the original at https://github.com/pucrs-automated-planning/pddl-parser"
 authors = [
     {name = "Brandon Corfman", email = "bcorfman@fastmail.fm"},
 ]
-dependencies = [
-    "more-itertools>=8.12.0",
-]
+dependencies = []
 requires-python = ">=3.9"
 license = {text = "MIT"}
 
