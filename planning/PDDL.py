@@ -36,6 +36,19 @@ class PDDL_Parser:
         self.positive_goals = frozenset()
         self.negative_goals = frozenset()
 
+    def __str__(self):
+        return '\n'.join([
+            'Domain: ' + self.domain_name,
+            'Requirements: ' + ', '.join(self.requirements),
+            'Types: ' + ', '.join(self.types),
+            'Objects: ' + ', '.join(self.objects),
+            'Actions:\n' + ', '.join([str(a) for a in self.actions]),
+            'Predicates: ' + ', '.join(self.predicates),
+            'Problem: ' + self.problem_name,
+            'State: ' + ', '.join([str(s) for s in self.state]),
+            'Positive goals: ' + ', '.join([str(g) for g in self.positive_goals]),
+            'Negative goals: ' + ', '.join([str(g) for g in self.negative_goals])
+        ])
     # -----------------------------------------------
     # Tokens
     # -----------------------------------------------

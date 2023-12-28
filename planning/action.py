@@ -48,7 +48,7 @@ class Action:
     # -----------------------------------------------
 
     def __str__(self):
-        return 'action: ' + self.name + \
+        return self.name + \
                '\n  parameters: ' + str(self.parameters) + \
                '\n  positive_preconditions: ' + str([list(i) for i in self.positive_preconditions]) + \
                '\n  negative_preconditions: ' + str([list(i) for i in self.negative_preconditions]) + \

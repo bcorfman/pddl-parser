@@ -7,6 +7,9 @@ class Stack:
     def __init__(self):
         self._data = []
 
+    def __contains__(self, item):
+        return item in self._data
+
     def push(self, item, _priority=None):
         self._data.append(item)
 
@@ -16,6 +19,10 @@ class Stack:
     def is_empty(self):
         return self.count == 0
 
+    def update(self, item, _priority=None):
+        del self._data[item]
+        self.push(item)
+
     def count(self):
         return len(self._data)
 
@@ -23,6 +30,9 @@ class Stack:
 class Queue:
     def __init__(self):
         self._data = deque()
+
+    def __contains__(self, item):
+        return item in self._data
 
     def push(self, item, _priority=None):
         self._data.appendleft(item)
@@ -33,6 +43,10 @@ class Queue:
     def is_empty(self):
         return self.count == 0
 
+    def update(self, item, priority=None):
+        del self._data[item]
+        self.push(item)
+
     @property
     def count(self):
         return len(self._data)
@@ -41,14 +55,15 @@ class Queue:
 class PriorityQueue:
     def __init__(self):
         self._data = []
-        self._count = 0
+
+    def __contains__(self, item):
+        return item in self._data
 
     def push(self, item, priority=None):
         if priority is None:
             priority = item.cost
-        entry = (priority, self._count, item)
+        entry = (priority, self.count, item)
         heapq.heappush(self._data, entry)
-        self._count += 1
 
     def pop(self):
         (_, _, item) = heapq.heappop(self._data)
@@ -85,9 +100,15 @@ def powerset(iterable):
 
 
 def reduced_powerset(seq):
-    if type(seq) != set:
+    if type(seq) != frozenset:
         seq = frozenset(seq)
     return frozenset_of_tuples((seq - frozenset(x) for x in powerset(seq) if 0 < len(x) < len(seq)))
+
+
+def powerset_of_tuples(seq):
+    if type(seq) != set:
+        seq = set(seq)
+    return seq - set((x for x in powerset(seq) if 0 < len(x) < len(seq)))
 
 
 def partition(pred, iterable):

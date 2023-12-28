@@ -1,5 +1,5 @@
 (define (domain n-puzzle)
-  (:requirements :strips :typing :negative-preconditions)
+  (:requirements :strips :typing )
 
   (:types
     tile  ; puzzles have numbered tiles

@@ -1,6 +1,6 @@
 import os
 import unittest
-from planning import search
+from planning import relax
 from planning.PDDL import PDDL_Parser
 from planning.relax import RelaxPrecondition, RelaxDeleteEffects
 
@@ -12,12 +12,13 @@ class TestRelax(unittest.TestCase):
         parser = PDDL_Parser()
         parser.parse_domain(domain_file)
         parser.parse_problem(problem_file)
-        self.problem = search.Problem(parser)
+        self.problem = relax.RelaxedProblem(parser)
 
     def test_apply_relax_precondition(self):
-        relax = RelaxPrecondition()
+        # TODO: consider whether transforms should be applied only to the RelaxedProblem
         predicates = [('at', 'blank', '?s1')]
-        relaxed_problem = relax.apply(self.problem, predicates)
+        transform = RelaxPrecondition()
+        relaxed_problem = transform.apply(self.problem, predicates)
         for action in self.problem.actions:
             for new_action in relaxed_problem.actions:
                 self.assertTrue(new_action.positive_preconditions.issubset(action.positive_preconditions))
@@ -28,8 +29,9 @@ class TestRelax(unittest.TestCase):
                     self.assertTrue(len(new_action.negative_preconditions) < len(action.negative_preconditions))
 
     def test_parameterize_relax_precondition(self):
-        relax = RelaxPrecondition()
-        for relaxed_problem in relax.parameterize(self.problem):
+        transform = RelaxPrecondition()
+        # TODO: This isn't really relaxed according to my definition
+        for relaxed_problem in transform.parameterize(self.problem):
             for action in self.problem.actions:
                 for new_action in relaxed_problem.actions:
                     self.assertTrue(new_action.positive_preconditions.issubset(action.positive_preconditions))
@@ -40,7 +42,7 @@ class TestRelax(unittest.TestCase):
                         self.assertTrue(len(new_action.negative_preconditions) < len(action.negative_preconditions))
 
     def test_apply_relax_delete_effects(self):
-        relax = RelaxDeleteEffects()
-        relaxed_problem = relax.apply(self.problem)
+        transform = RelaxDeleteEffects()
+        relaxed_problem = transform.apply(self.problem)
         for new_action in relaxed_problem.actions:
             self.assertTrue(new_action.del_effects == [])

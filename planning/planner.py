@@ -16,17 +16,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 import argparse
+import copy
 import math
 import sys
 import time
 from planning import search
 from planning.PDDL import PDDL_Parser
 from planning.util import partition
+from planning import relax, heuristic
 
 
 class Planner:
-    def __init__(self):
-        self.max_time = 60
+    def __init__(self, max_time=60):
+        self.max_time = max_time
+        self.search_algo = None
+        self.transforms = []
+        self.best_relaxed_problem = None
+        self.best_plan = None
+        self.best_time = math.inf
 
     # -----------------------------------------------
     # Solve
@@ -35,11 +42,16 @@ class Planner:
     def solve(self, domain_file, problem_file, transformations, heuristic_type, search_type, max_time):
         self.max_time = max_time
         search_algo = search.ALGORITHMS[search_type]
+        transforms = [relax.TRANSFORMATIONS[name] for name in transformations]
         parser = self.parse(domain_file, problem_file)
-        cost_estimate = None
-        if heuristic_type and search_algo != search.breadth_first_search:
-            cost_estimate, _ = self.solve_relaxed_problem(parser, search_algo, transformations, heuristic_type)
-        return self.solve_informed_problem(cost_estimate, parser, search_algo)
+        if heuristic_type and search_type in search.INFORMED_SEARCHES:
+            h = heuristic.TYPES[heuristic_type]
+            problem = relax.RelaxedProblem(h)
+            plan = self.solve_informed(problem, transforms, search_algo)
+        else:
+            problem = search.Problem(parser)
+            plan = search_algo(problem, self.max_time)
+        return plan
 
     def parse(self, domain_file, problem_file):
         parser = PDDL_Parser()
@@ -47,59 +59,54 @@ class Planner:
         parser.parse_problem(problem_file)
         return parser
 
-    def solve_informed_problem(self, cost_estimate, parser, search_algo):
-        problem = search.Problem(parser)
-        # cost estimate for relaxed problem becomes guide for informed search
-        problem.cost_estimate = cost_estimate
-        return search_algo(problem, self.max_time)
-
-    def solve_relaxed_problem(self, parser, search_algo, transformations, heuristic_type):
-        cost_estimate = -1
-        problem = search.Problem(parser)
-        relaxed_problem = self.relax_problem(parser, search_algo, transformations, heuristic_type)
-        heuristic_class = search.HEURISTIC_CLASS[heuristic_type]
-        heuristic = heuristic_class(problem.state)
+    def solve_informed(self, problem, transforms, search_algo):
+        relaxed_problem = self.relax_problem(problem, transforms)
         relaxed_plan = search_algo(relaxed_problem, self.max_time)
-        if type(relaxed_plan) is list:
-            cost_estimate = max(cost_estimate, len(relaxed_plan))
-            best_relaxed_problem = relaxed_problem
-        return cost_estimate, relaxed_problem
+        return relaxed_plan
 
-    def relax_problem(self, parser, search_algo, transformations, heuristic_type):
+    def relax_problem(self, problem, transforms):
         # relax the original problem by altering the actions so that it's easier to solve.
-        updated_problem = search.Problem(parser)
-        transforms = [search.RELAXING_TRANSFORMATIONS[name] for name in transformations]
+        updated_problem = copy.copy(problem)
         apply_transforms, parameterize_transforms = partition(lambda obj: hasattr(obj, 'parameterize'), transforms)
         while apply_transforms:
             transform_class = apply_transforms.pop()
-            updated_problem = self.apply_relaxation(transform_class, updated_problem)
+            updated_problem = self.apply_relaxation(updated_problem, transform_class)
         while parameterize_transforms:
-            transform_gen = parameterize_transforms.pop()
-            updated_problem = self.evaluate_relaxation(updated_problem, transform_gen, search_algo)
+            transform_class = parameterize_transforms.pop()
+            updated_problem = self.evaluate_relaxation(updated_problem, transform_class)
+        updated_problem.groundify_actions()
         return updated_problem
 
-    def apply_relaxation(self, transform_class, relaxed_problem):
+    def apply_relaxation(self, relaxed_problem, transform_class):
         transform = transform_class()
         return transform.apply(relaxed_problem)
 
-    def evaluate_relaxation(self, problem, transform_gen, search_algo):
-        best_relaxed_problem = None
-        best_time = math.inf
-        start_time = 0
-        for transform_class in transform_gen:
-            transform = transform_class()
-            for trial_problem in transform.parameterize(problem):
-                trial_problem.groundify_actions()
-                start_time = time.time()
-                trial_plan = search_algo(trial_problem, self.max_time)
-                trial_time = time.time() - start_time
-                if trial_plan and trial_time < best_time:
-                    best_relaxed_problem = trial_problem
-                    best_time = trial_time
+    def reset_eval(self):
+        self.best_relaxed_problem = None
+        self.best_plan = None
+        self.best_time = math.inf
+
+    def evaluate_relaxation(self, problem, transform_class):
+        self.reset_eval()
+        transform = transform_class()
+        for trial_problem in transform.parameterize(problem):
+            trial_problem.groundify_actions()
+            self.eval_search(trial_problem)
         else:
-            if best_relaxed_problem is None and start_time == 0:
-                raise Exception("Could not find any relaxed solution.")
-        return best_relaxed_problem
+            if self.best_plan is None:
+                raise Exception("Could not find a best relaxed solution.")
+        print(self.best_relaxed_problem)
+        return self.best_relaxed_problem
+
+    def eval_search(self, trial_problem):
+        start_time = time.time()
+        trial_plan = self.search_algo(trial_problem, self.max_time)
+        trial_time = time.time() - start_time
+        if trial_plan and trial_time < self.best_time:
+            self.best_relaxed_problem = trial_problem
+            self.best_plan = trial_plan
+            self.best_relaxed_problem.solution = self.best_plan
+            self.best_time = trial_time
 
 
 def parse_args(args):
@@ -112,10 +119,11 @@ def parse_args(args):
     parser.add_argument('problem_file', help='defines problem by describing its domain, objects, initial state and '
                                              'goal state using Planning Domain Definition Language (PDDL)')
     parser.add_argument('-S', help='search algorithm used in the planner', dest='search_type',
-                        choices=['bfs', 'astar'], default='bfs')
+                        choices=search.ALGORITHMS.keys(), default=list(search.ALGORITHMS.keys()).pop())
     parser.add_argument('-R', help='transformations to relax the problem for heuristic search', dest='transformations',
-                        choices=search.RELAXING_TRANSFORMATIONS.keys(), action='append')
-    parser.add_argument('-H', help="heuristic used in the search", dest='heuristic_type', choices=['max', 'sum'])
+                        choices=relax.TRANSFORMATIONS.keys(), action='append')
+    parser.add_argument('-H', help="heuristic used in the search", dest='heuristic_type',
+                        choices=heuristic.TYPES.keys())
     parser.add_argument('-t', help="maximum time used for search (in seconds)", dest="max_time", type=int, default=60)
     parser.add_argument('-v', '--verbose', help='gives verbose output for debugging purposes', action='store_true',
                         default=False)
@@ -126,8 +134,8 @@ def run_planner():
     start_time = time.time()
     args = parse_args(sys.argv[1:])
     planner = Planner()
-    plan = planner.solve(args.domain_file, args.problem_file, args.transformations, args.heuristic_type, args.search_type,
-                         args.max_time)
+    plan = planner.solve(args.domain_file, args.problem_file, args.transformations, args.heuristic_type,
+                         args.search_type, args.max_time)
     print('Time: ' + str(time.time() - start_time) + 's')
     if type(plan) is list:
         print(f'plan length: {len(plan)}')

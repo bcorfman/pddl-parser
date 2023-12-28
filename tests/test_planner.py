@@ -23,7 +23,7 @@ from planning.planner import Planner, parse_args
 from planning import heuristic, relax, search
 
 
-class Test_Planner(unittest.TestCase):
+class TestPlanner(unittest.TestCase):
 
     # -----------------------------------------------
     # Test solve
@@ -55,18 +55,21 @@ class Test_Planner(unittest.TestCase):
         self.assertEqual(args.domain_file, os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl'))
         self.assertEqual(args.problem_file, os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl'))
         self.assertEqual(search.ALGORITHMS[args.search_type], search.astar_search)
-        self.assertEqual(search.HEURISTIC_CLASS[args.heuristic_type], heuristic.h_max)
-        self.assertEqual(search.RELAXING_TRANSFORMATIONS[args.transformations[0]], relax.RelaxDeleteEffects)
+        self.assertEqual(heuristic.TYPES[args.heuristic_type], heuristic.h_max)
+        self.assertEqual(relax.TRANSFORMATIONS[args.transformations[0]], relax.RelaxDeleteEffects)
 
-    def test_planner_setup_relaxed_problem(self):
+    def test_planner_setup_informed_problem(self):
         args = parse_args([os.path.join('examples', 'n_puzzle', 'n_puzzle.pddl'),
                            os.path.join('examples', 'n_puzzle', 'eight_puzzle_pb1.pddl'),
-                           '-R=no_delete_effects', '-S=astar', '-H=max'])
-        planner = Planner()
+                           '-R=no_delete_effects', '-S=astar', '-H=max', '-t=9999999'])
+        planner = Planner(args.max_time)
         parser = planner.parse(args.domain_file, args.problem_file)
         search_algo = search.ALGORITHMS[args.search_type]
-        cost_estimate, _ = planner.solve_relaxed_problem(parser, search_algo, args.transformations, args.heuristic_type)
-        self.assertEqual(cost_estimate, 21)
+        h = heuristic.TYPES[args.heuristic_type]
+        problem = search.Problem(parser, h)
+        transforms = [relax.TRANSFORMATIONS[t] for t in args.transformations]
+        plan = planner.solve_informed(problem, transforms, search_algo)
+        self.assertEqual(len(plan), 21)
 
 
 # -----------------------------------------------
