@@ -9,5 +9,8 @@
         "source.organizeImports": "explicit"
     },
     "editor.formatOnPaste": true,
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "yapf.args": [
+        "column_limit: 120, indent_width: 4"
+    ]
 }
