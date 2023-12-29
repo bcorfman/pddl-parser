@@ -1,13 +1,13 @@
 name: build
 on: [push, pull_request]
 jobs:
-  test:
+  build:
+    runs-on: ${{ matrix.os }}
     strategy:
-      matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
       fail-fast: false
-    name: Python ${{ matrix.python-version }}
-    runs-on: [ubuntu-latest, macos-latest]
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.9', '3.10', '3.11', '3.12']
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v4
